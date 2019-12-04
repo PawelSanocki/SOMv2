@@ -137,8 +137,8 @@ class Som:
                 input_vec = img[i]
                 #print (input_vec)
                 if (np.min(np.linalg.norm(input_vec - centroids[range(centroids.shape[0])])) > threshold):
-                    np.append(centroids, input_vec)
-        #print(centroids.shape)
+                    centroids = np.append(centroids, input_vec)
+        print(centroids.shape)
         for iter in range(self._learn_iterations):
             if (iter%10000 == 0):
                 print("Training: " + str(100.0 * iter//self._learn_iterations) + "%")
@@ -152,7 +152,7 @@ class Som:
         tf.compat.v1.reset_default_graph()        
     def train(self, threshold, path):
             filenames = [join(path, name) for name in os.listdir(path)]
-            centroids = np.zeros((0, self.input_dim))
+            centroids = np.empty((self.input_dim,0))
             for filename in filenames:
                 if filename.find(".lan") > 0:
                     img = open_image(filename)
@@ -168,16 +168,25 @@ class Som:
                 if img.shape[2] != self.input_dim:
                     continue
                 for i in self.generator_image(img.shape[0], img.shape[1]):
-                    input_vec = self.create_input_vec(img, i)
-                    if (np.min(np.linalg.norm(input_vec - centroids[range(centroids.shape[0])])) > threshold):
-                        np.append(centroids, input_vec)
+                    input_vec = np.resize(self.create_input_vec(img, i), (self.input_dim, 1))
+                    if (self.passThreshold(threshold, input_vec, centroids)):
+                        centroids = np.append(centroids, input_vec, axis=1)
+            centroids = np.transpose(centroids)
+            print(centroids.shape)
             for iter in range(self._learn_iterations):
                 if (iter%10000 == 0):
                     print("Training: " + str(100.0 * iter//self._learn_iterations) + "%")
                 for input_vec in centroids:
-                    self._sess.run(self._training_op, feed_dict={self._input_vec: input_vec, self._learning_iteration: iter})
+                    self._sess.run(self._training_op, feed_dict={self._input_vec: np.reshape(input_vec, (self.input_dim)), self._learning_iteration: iter})
                 np.random.shuffle(centroids)
             print("training done")
+    def passThreshold(self,threshold, input_vec, centroids):
+        if centroids.shape[1] == 0:
+            return True
+        if (np.min(np.linalg.norm(input_vec - centroids[range(centroids.shape[0])])) > threshold):
+            return True
+        return False
+
     def create_input_vec(self, img, i):
         input_vec = np.empty(0)
         for it_r in range(i[0] - self._size//2, i[0] + self._size//2 + self._size%2):
@@ -185,7 +194,7 @@ class Som:
                 input_vec = np.append(input_vec, img[it_r, it_c])
         return (input_vec)
         
-        
+
 
 
 
