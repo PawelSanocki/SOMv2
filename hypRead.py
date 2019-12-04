@@ -22,14 +22,14 @@ def segmentImage(folderPath, outputPath,  imageFile, n_iter, learn_rate, thresho
     else:
         print("Wrong input")
         return
-    print(img.shape)
+    #print(img.shape)
     my_som = MySOM.Som(dim_x = dx,dim_y = dy,dim_z = dz,input_dim = img.shape[2],learning_rate = learn_rate, learn_iter = n_iter, size=size, quality = output_quality)
-    #my_som.load_weights()
+    #my_som.load_weights(filename)
     #my_som.train_with_threshold_hyperspectral(threshold, folderPath)
     start_time = time.time()
     my_som.train(threshold*(size**2), folderPath)
     print("Time taken for training: " + str((time.time() - start_time)/60) + " min")
-    #my_som.save_weights()
+    #my_som.save_weights(filename)
     start_time = time.time()
     result = my_som.convert_image(img)
     print("Time taken for converting: " + str((time.time() - start_time)/60) + " min")

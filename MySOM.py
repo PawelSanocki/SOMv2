@@ -98,11 +98,11 @@ class Som:
         for i in range(self._size//2, cols-self._size//2, self.quality):
             for j in range(self._size//2, rows-self._size//2, self.quality):
                 yield i, j
-    def save_weights(self):
-        self.saver.save(self._sess, "model\\model.ckpt")
-        print("saved")
-    def load_weights(self):
-        self.saver.restore(self._sess, "model\\model.ckpt")
+    def save_weights(self, name):
+        self.saver.save(self._sess, "model\\model_" + name + ".ckpt")
+        print("Saved")
+    def load_weights(self, name):
+        self.saver.restore(self._sess, "model\\model_" + name + ".ckpt")
         print("Loaded")
     def train_with_threshold_rgb(self, threshold):
         path = "C:\\Users\\sanoc\\OneDrive\\Pulpit\\SomTensorflow\\data"
@@ -162,31 +162,36 @@ class Som:
                     img_mat = loadmat(filename)
                     for i in img_mat:
                         img = img_mat[i]
-                # cv2 dodaj dla rgb
+                elif filename.find(".png") > 0 or filename.find(".jpg") > 0:
+                    img = cv2.imread(filename)
                 else:
                     continue
                 if img.shape[2] != self.input_dim:
                     continue
                 for i in self.generator_image(img.shape[0], img.shape[1]):
+                    if i[1] == 0: 
+                        print("Creating training set: " + str(i[0] * 100 // img.shape[0] ) + "% Number of vectors: " + str(centroids.shape[1]))
                     input_vec = np.resize(self.create_input_vec(img, i), (self.input_dim, 1))
                     if (self.passThreshold(threshold, input_vec, centroids)):
                         centroids = np.append(centroids, input_vec, axis=1)
             centroids = np.transpose(centroids)
-            print(centroids.shape)
             for iter in range(self._learn_iterations):
-                if (iter%10000 == 0):
+                if (iter%100 == 0):
                     print("Training: " + str(100.0 * iter//self._learn_iterations) + "%")
                 for input_vec in centroids:
                     self._sess.run(self._training_op, feed_dict={self._input_vec: np.reshape(input_vec, (self.input_dim)), self._learning_iteration: iter})
                 np.random.shuffle(centroids)
             print("training done")
     def passThreshold(self,threshold, input_vec, centroids):
+        #print(centroids.shape)
         if centroids.shape[1] == 0:
             return True
-        if (np.min(np.linalg.norm(input_vec - centroids[range(centroids.shape[0])])) > threshold):
-            return True
-        return False
-
+        for i in range(centroids.shape[1]):
+            if np.linalg.norm(input_vec - centroids[:,i]) < threshold:
+                return False
+        # if (np.min(np.linalg.norm(input_vec - centroids[range(centroids.shape[0])])) > threshold):
+        #     return True
+        return True
     def create_input_vec(self, img, i):
         input_vec = np.empty(0)
         for it_r in range(i[0] - self._size//2, i[0] + self._size//2 + self._size%2):
