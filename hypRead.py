@@ -22,6 +22,7 @@ def segmentImage(folderPath, outputPath,  imageFile, n_iter, learn_rate, thresho
     else:
         print("Wrong input")
         return
+    print(img.shape)
     my_som = MySOM.Som(dim_x = dx,dim_y = dy,dim_z = dz,input_dim = img.shape[2],learning_rate = learn_rate, learn_iter = n_iter, size=size, quality = output_quality)
     #my_som.load_weights()
     #my_som.train_with_threshold_hyperspectral(threshold, folderPath)
