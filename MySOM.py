@@ -51,7 +51,7 @@ class Som:
                     tf.reshape(distances_weights, (self.d_x, self.d_y * self.d_z)), (self.d_x * self.d_y * self.d_z, 1)))
             self.bmu_location = [(linear_location // self.d_z // self.d_y) % self.d_x, (linear_location // self.d_z) % self.d_y, linear_location % self.d_z]
 
-            sigma_t = (sigma * tf.math.exp(tf.math.negative((self._learning_iteration / time_constant))))
+            sigma_t = (sigma * tf.math.exp(-((self._learning_iteration / time_constant))))
             learning_rate_t = (learning_rate * tf.math.exp(-((self._learning_iteration / time_constant))))
 
             bmu_influence = tf.stack([tf.math.exp(-((distances_weights ** 2) / ((sigma_t ** 2) * 2.0))) for i in range(input_dim)], axis = 3)
@@ -99,7 +99,7 @@ class Som:
             for j in range(self._size//2, rows-self._size//2, self.quality):
                 yield i, j
     def save_weights(self, name):
-        self.saver.save(self._sess, "model\\model_" + name + ".ckpt")
+        self.saver.save(self._sess, "model\\model_" + name)
         print("Saved")
     def load_weights(self, name):
         self.saver.restore(self._sess, "model\\model_" + name + ".ckpt")
@@ -169,17 +169,17 @@ class Som:
                 if img.shape[2] != self.input_dim:
                     continue
                 for i in self.generator_image(img.shape[0], img.shape[1]):
-                    if i[1] == 0: 
-                        print("Creating training set: " + str(i[0] * 100 // img.shape[0] ) + "% Number of vectors: " + str(centroids.shape[1]))
                     input_vec = np.resize(self.create_input_vec(img, i), (self.input_dim, 1))
                     if (self.passThreshold(threshold, input_vec, centroids)):
                         centroids = np.append(centroids, input_vec, axis=1)
+                    if i[1] == 0: 
+                        print("Creating training set: " + str(i[0] * 100 // img.shape[0] ) + "% Number of vectors: " + str(centroids.shape[1]))
             centroids = np.transpose(centroids)
-            for iter in range(self._learn_iterations):
+            for iter in range(1, self._learn_iterations):
                 if (iter%100 == 0):
                     print("Training: " + str(100.0 * iter//self._learn_iterations) + "%")
                 for input_vec in centroids:
-                    self._sess.run(self._training_op, feed_dict={self._input_vec: np.reshape(input_vec, (self.input_dim)), self._learning_iteration: iter})
+                    self._sess.run(self._training_op, feed_dict={self._input_vec: np.reshape(input_vec, (self.input_dim)), self._learning_iteration: float(iter)})
                 np.random.shuffle(centroids)
             print("training done")
     def passThreshold(self,threshold, input_vec, centroids):

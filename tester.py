@@ -8,3 +8,9 @@
 #     file_drive = drive.CreateFile({'title':os.path.basename(file.name) })  
 #     file_drive.SetContentString(file.read()) 
 #     file1_drive.Upload()
+import numpy as np
+a = np.arange(15).reshape(3, 5)
+print(a)
+#a = np.transpose(a)
+np.random.shuffle(a)
+print(a)
