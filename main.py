@@ -11,8 +11,8 @@ im = "Salinas.mat"
 #im = "SalinasA.mat"
 #im = "Indian_pines.mat"
 
-hypRead.segmentImage(folderPath=fp, outputPath=op, imageFile = im, learn_rate=0.001, n_iter=10000, \
-                    threshold = 600000, dx = 12, dy = 12, dz = 12, size=1, output_quality=1, showResult=False, sig = None)
+hypRead.segmentImage(folderPath=fp, outputPath=op, imageFile = im, learn_rate=0.01, n_iter=10000, \
+                    threshold = 5000, dx = 12, dy = 12, dz = 12, size=1, output_quality=1, showResult=False, sig = None)
 
 # analiza problemu
 # zapoznanie z algorytmai i przegląd literatury
