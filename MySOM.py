@@ -75,15 +75,6 @@ class Som:
         return self._sess.run(self.bmu_location, feed_dict={self._input_vec: input_vec})
     def show_bmu_distance(self, input_vec):
         return self._sess.run(self.bmu_distance, feed_dict={self._input_vec: input_vec})
-    def train_image(self):
-        path = "C:\\Users\\sanoc\\OneDrive\\Pulpit\\SomTensorflow\\data"
-        filenames = [join(path, name) for name in os.listdir(path)]
-        for iter in range(self._learn_iterations):
-            for filename in filenames:
-                img = cv2.imread(filename)
-                for i in self.generator_image(img.shape[0], img.shape[1]):
-                    input_vec = img[i]
-                    self._sess.run(self._training_op, feed_dict={self._input_vec: input_vec, self._learning_iteration: iter})
     def convert_image(self, img):
         converted_img = np.zeros((img.shape[0]//self.quality, img.shape[1]//self.quality, 3))
         for i in self.generator_image(img.shape[0], img.shape[1]):
@@ -104,48 +95,6 @@ class Som:
     def load_weights(self, name):
         self.saver.restore(self._sess, "model\\model_" + name + ".ckpt")
         print("Loaded")
-    def train_with_threshold_rgb(self, threshold):
-        path = "C:\\Users\\sanoc\\OneDrive\\Pulpit\\SomTensorflow\\data"
-        filenames = [join(path, name) for name in os.listdir(path)]
-        centroids = np.zeros((1, self.input_dim))
-        for filename in filenames:
-            img = cv2.imread(filename)
-            for i in self.generator_image(img.shape[0], img.shape[1]):
-                input_vec = img[i]
-                if (np.min(np.linalg.norm(input_vec - centroids[range(centroids.shape[0])])) > threshold):
-                    np.append(centroids, input_vec)
-        for iter in range(self._learn_iterations):
-            for input_vec in centroids:
-                self._sess.run(self._training_op, feed_dict={self._input_vec: input_vec, self._learning_iteration: iter})
-    def train_with_threshold_hyperspectral(self, threshold, path):
-        filenames = [join(path, name) for name in os.listdir(path)]
-        centroids = np.zeros((0, self.input_dim))
-        for filename in filenames:
-            if filename.find(".lan") > 0:
-                img = open_image(filename)
-            elif filename.find(".hdr") > 0:
-                img = envi.open(filename)
-            elif filename.find(".mat") > 0:
-                img_mat = loadmat(filename)
-                for i in img_mat:
-                    img = img_mat[i]
-            else:
-                continue
-            if img.shape[2] != self.input_dim:
-                continue
-            for i in self.generator_image(img.shape[0], img.shape[1]):
-                input_vec = img[i]
-                #print (input_vec)
-                if (np.min(np.linalg.norm(input_vec - centroids[range(centroids.shape[0])])) > threshold):
-                    centroids = np.append(centroids, input_vec)
-        print(centroids.shape)
-        for iter in range(self._learn_iterations):
-            if (iter%10000 == 0):
-                print("Training: " + str(100.0 * iter//self._learn_iterations) + "%")
-            for input_vec in centroids:
-                self._sess.run(self._training_op, feed_dict={self._input_vec: input_vec, self._learning_iteration: iter})
-            np.random.shuffle(centroids)
-        print("training done")
     def finish(self):
         tf.keras.backend.clear_session()
         self._sess.close()
@@ -172,7 +121,7 @@ class Som:
                     input_vec = np.resize(self.create_input_vec(img, i), (self.input_dim, 1))
                     if (self.passThreshold(threshold, input_vec, centroids)):
                         centroids = np.append(centroids, input_vec, axis=1)
-                    if i[1] == 0: 
+                    if i[1] == 0:
                         print("Creating training set: " + str(i[0] * 100 // img.shape[0] ) + "% Number of vectors: " + str(centroids.shape[1]))
             centroids = np.transpose(centroids)
             for iter in range(1, self._learn_iterations):
@@ -184,6 +133,7 @@ class Som:
             print("training done")
     def passThreshold(self,threshold, input_vec, centroids):
         #print(centroids.shape)
+        #return True
         if centroids.shape[1] == 0:
             return True
         for i in range(centroids.shape[1]):
