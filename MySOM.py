@@ -11,7 +11,7 @@ from scipy.io import loadmat
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 class Som:
-    def __init__(self, dim_x = 2, dim_y = 3, dim_z = 4, input_dim = 3, learn_iter = 10, learning_rate = 0.01, size = 1, sigma = None, time_constant = None, quality = 1):
+    def __init__(self, dim_x = 2, dim_y = 3, dim_z = 4, input_dim = 3, learn_iter = 10, learning_rate = 0.01, size = 1, sigma = None, time_const = None, quality = 1):
         '''
         dim_x, dim_y, dim_z -> size of the map in given dimension
         input_dim -> number of spectral bands of the image
@@ -26,11 +26,13 @@ class Som:
         self.d_z = dim_z
         self._size = size
         if sigma == None:
-            sigma = max(dim_x, dim_y, dim_z) / 2.0
+            self.sigma = max(dim_x, dim_y, dim_z) / 2.0
         else:
-            sigma = float(sigma)
-        if time_constant == None:
-            time_constant = learn_iter / np.log(sigma)
+            self.sigma = float(sigma)
+        if time_const == None:
+            self.time_constant = learn_iter / np.log(self.sigma)
+        else:
+            self.time_constant = time_constant
         if learning_rate == None:
             learning_rate = float(learning_rate)
         self.input_dim = input_dim * (size**2)
@@ -51,11 +53,11 @@ class Som:
                     tf.reshape(distances_weights, (self.d_x, self.d_y * self.d_z)), (self.d_x * self.d_y * self.d_z, 1)))
             self.bmu_location = [(linear_location // self.d_z // self.d_y) % self.d_x, (linear_location // self.d_z) % self.d_y, linear_location % self.d_z]
 
-            sigma_t = (sigma * tf.math.exp(-((self._learning_iteration / time_constant))))
-            learning_rate_t = (learning_rate * tf.math.exp(-((self._learning_iteration / time_constant))))
+            sigma_t = (self.sigma * tf.math.exp(-((self._learning_iteration / self.time_constant))))
+            learning_rate_t = (learning_rate * tf.math.exp(-((self._learning_iteration / self.time_constant))))
+            self.bmu_mask = tf.compat.v1.placeholder("float", shape = [dim_x, dim_y, dim_z], name = "bmu_mask")
 
-            bmu_influence = tf.stack([tf.math.exp(-((distances_weights ** 2) / ((sigma_t ** 2) * 2.0))) for i in range(input_dim)], axis = 3)
-            
+            bmu_influence = tf.stack([self.bmu_mask * tf.math.exp(-((distances_weights ** 2) / ((sigma_t ** 2) * 2.0))) for i in range(input_dim)], axis = 3)
             new_weights = (self._weights + ((bmu_influence * learning_rate_t) * (self.input_tensor - self._weights)))
             self._training_op = tf.compat.v1.assign(self._weights, new_weights)
             
@@ -73,6 +75,17 @@ class Som:
                 self._sess.run(self._training_op, feed_dict={self._input_vec: input_vec, self._learning_iteration: iter})
     def convert(self, input_vec):
         return self._sess.run(self.bmu_location, feed_dict={self._input_vec: input_vec})
+    def create_mask_for_updating_weights(self, bmu_location, iter):
+        sigma_t = int(self.sigma * np.exp(-((iter / self.time_constant))))
+        mask = np.zeros((self.d_x, self.d_y, self.d_z), dtype=np.float32)
+        #print(bmu_location)
+        for i in range(int(bmu_location[0].item()) - sigma_t, int(bmu_location[0].item()) + sigma_t):
+            for j in range(bmu_location[1].item() - sigma_t, bmu_location[1].item()//1 + sigma_t):
+                for k in range(bmu_location[2].item() - sigma_t, bmu_location[2].item()//1 + sigma_t):
+                    if i >= 0 and i < mask.shape[0] and j >= 0 and j < mask.shape[1] and k >= 0 and k < mask.shape[2]:
+                        mask[i, j, k] = 1
+        #print (mask)
+        return mask
     def show_bmu_distance(self, input_vec):
         return self._sess.run(self.bmu_distance, feed_dict={self._input_vec: input_vec})
     def convert_image(self, img):
@@ -121,14 +134,17 @@ class Som:
                     input_vec = np.resize(self.create_input_vec(img, i), (1, self.input_dim))
                     if (self.passThreshold(threshold, input_vec, centroids)):
                         centroids = np.append(centroids, input_vec, axis=0)
-                    if i[1] == img.shape[1]-1:
+                    if i[1] == img.shape[1]-1 and i[0]%100==0:
                         print("Creating training set: " + str(i[0] * 100 // img.shape[0] ) + "% Number of vectors: " + str(centroids.shape[0]))
             #centroids = np.transpose(centroids)
             for iter in range(1, self._learn_iterations):
-                if (iter%100 == 0):
+                if (iter%(self._learn_iterations//10) == 0):
                     print("Training: " + str(100.0 * iter//self._learn_iterations) + "%")
                 for input_vec in centroids:
-                    self._sess.run(self._training_op, feed_dict={self._input_vec: np.reshape(input_vec, (self.input_dim)), self._learning_iteration: float(iter)})
+                    bmu_loc = self._sess.run(self.bmu_location, feed_dict={self._input_vec: input_vec})
+                    #print(bmu_loc[0].item())
+                    self._sess.run(self._training_op, feed_dict={self._input_vec: np.reshape(input_vec, (self.input_dim)), self._learning_iteration: float(iter), \
+                     self.bmu_mask: self.create_mask_for_updating_weights(bmu_loc, iter)})
                 np.random.shuffle(centroids)
             print("training done")
     def passThreshold(self,threshold, input_vec, centroids):
