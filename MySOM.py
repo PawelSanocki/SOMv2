@@ -57,7 +57,7 @@ class Som:
             learning_rate_t = (learning_rate * tf.math.exp(-((self._learning_iteration / self.time_constant))))
             self.bmu_mask = tf.compat.v1.placeholder("float", shape = [dim_x, dim_y, dim_z], name = "bmu_mask")
 
-            bmu_influence = tf.stack([self.bmu_mask * tf.math.exp(-((distances_weights ** 2) / ((sigma_t ** 2) * 2.0))) for i in range(input_dim)], axis = 3)
+            bmu_influence = tf.stack([self.bmu_mask * tf.math.exp(-((distances_weights ** 2) / ((sigma_t ** 2) * 2.0))) for i in range(self.input_dim)], axis = 3)
             new_weights = (self._weights + ((bmu_influence * learning_rate_t) * (self.input_tensor - self._weights)))
             self._training_op = tf.compat.v1.assign(self._weights, new_weights)
             
@@ -78,13 +78,11 @@ class Som:
     def create_mask_for_updating_weights(self, bmu_location, iter):
         sigma_t = int(self.sigma * np.exp(-((iter / self.time_constant))))
         mask = np.zeros((self.d_x, self.d_y, self.d_z), dtype=np.float32)
-        #print(bmu_location)
         for i in range(int(bmu_location[0].item()) - sigma_t, int(bmu_location[0].item()) + sigma_t):
             for j in range(bmu_location[1].item() - sigma_t, bmu_location[1].item()//1 + sigma_t):
                 for k in range(bmu_location[2].item() - sigma_t, bmu_location[2].item()//1 + sigma_t):
                     if i >= 0 and i < mask.shape[0] and j >= 0 and j < mask.shape[1] and k >= 0 and k < mask.shape[2]:
                         mask[i, j, k] = 1
-        #print (mask)
         return mask
     def show_bmu_distance(self, input_vec):
         return self._sess.run(self.bmu_distance, feed_dict={self._input_vec: input_vec})
@@ -128,13 +126,13 @@ class Som:
                     img = cv2.imread(filename)
                 else:
                     continue
-                if img.shape[2] != self.input_dim:
+                if img.shape[2] != self.input_dim / (self._size**2):
                     continue
                 for i in self.generator_image(img.shape[0], img.shape[1]):
                     input_vec = np.resize(self.create_input_vec(img, i), (1, self.input_dim))
                     if (self.passThreshold(threshold, input_vec, centroids)):
                         centroids = np.append(centroids, input_vec, axis=0)
-                    if i[1] == img.shape[1]-1 and i[0]%100==0:
+                    if i[1] == img.shape[1]-self._size and i[0]%100==0:
                         print("Creating training set: " + str(i[0] * 100 // img.shape[0] ) + "% Number of vectors: " + str(centroids.shape[0]))
             #centroids = np.transpose(centroids)
             for iter in range(1, self._learn_iterations):
@@ -142,7 +140,6 @@ class Som:
                     print("Training: " + str(100.0 * iter//self._learn_iterations) + "%")
                 for input_vec in centroids:
                     bmu_loc = self._sess.run(self.bmu_location, feed_dict={self._input_vec: input_vec})
-                    #print(bmu_loc[0].item())
                     self._sess.run(self._training_op, feed_dict={self._input_vec: np.reshape(input_vec, (self.input_dim)), self._learning_iteration: float(iter), \
                      self.bmu_mask: self.create_mask_for_updating_weights(bmu_loc, iter)})
                 np.random.shuffle(centroids)
@@ -162,6 +159,7 @@ class Som:
             for it_c in range(i[1] - self._size//2, i[1] + self._size//2 + self._size%2):
                 input_vec = np.append(input_vec, img[it_r, it_c])
         return (input_vec)
+
         
 
 
