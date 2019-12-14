@@ -41,4 +41,4 @@ def validateResult(imgFile = "D:\\Results\\results\\PaviaU\\1575712757.065766161
     # cv2.waitKey()
     # cv2.destroyAllWindows()
 
-validateResult(r"D:\Results\results\Salinas\1576012169.0161616_lr9_li1000_th4000__s3.jpg", r"D:\Results\results\Salinas.png")
+#validateResult(r"D:\Results\results\Salinas\1576012169.0161616_lr9_li1000_th4000__s3.jpg", r"D:\Results\results\Salinas.png")

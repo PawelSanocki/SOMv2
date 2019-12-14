@@ -8,7 +8,7 @@ from scipy.io import loadmat
 import time
 import nmi
 
-def segmentImage(folderPath, outputPath,  imageFile, n_iter, learn_rate, threshold, dx = 16, dy = 16, dz = 16, showResult = False, size = 1, output_quality = 1, sig = None):
+def segmentImage(folderPath, outputPath,refPath,  imageFile, n_iter, learn_rate, threshold, dx = 16, dy = 16, dz = 16, showResult = False, size = 1, output_quality = 1, sig = None):
     if imageFile.find(".lan") > 0:
         filename = imageFile.replace(".lan","")
         img = open_image(folderPath + "\\" + imageFile)
@@ -27,7 +27,7 @@ def segmentImage(folderPath, outputPath,  imageFile, n_iter, learn_rate, thresho
     else:
         print("Wrong input")
         return
-    print(img.shape[0]*img.shape[1])
+    print(img.shape)
     my_som = MySOM.Som(dim_x = dx,dim_y = dy,dim_z = dz,input_dim = img.shape[2],learning_rate = learn_rate, learn_iter = n_iter, size=size, quality = output_quality, sigma=sig)
     #my_som.load_weights(filename)
     #my_som.train_with_threshold_hyperspectral(threshold, folderPath)
@@ -42,7 +42,7 @@ def segmentImage(folderPath, outputPath,  imageFile, n_iter, learn_rate, thresho
     print(outputFileName)
     print(cv2.imwrite(outputFileName,result))
     my_som.finish()
-    nmi.validateResult(imgFile = outputFileName, referencePath= "D:\\Results\\results\\dc.png")
+    nmi.validateResult(imgFile = outputFileName, referencePath= refPath)
     if showResult == True:
         cv2.imshow(str(my_som.d_x) + str(my_som.d_y) + str(my_som.d_z) + "_lr" + str(int(1//my_som.lr)) + "_li" + str(my_som._learn_iterations), result)
         cv2.waitKey()

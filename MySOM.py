@@ -6,6 +6,7 @@ import cv2
 import spectral.io.envi as envi
 from spectral import open_image
 from scipy.io import loadmat
+import input_vec_rotational
 
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -154,11 +155,15 @@ class Som:
         #     return True
         return True
     def create_input_vec(self, img, i):
+        '''
         input_vec = np.empty(0)
         for it_r in range(i[0] - self._size//2, i[0] + self._size//2 + self._size%2):
             for it_c in range(i[1] - self._size//2, i[1] + self._size//2 + self._size%2):
                 input_vec = np.append(input_vec, img[it_r, it_c])
         return (input_vec)
+        '''
+        # pomysł ze sprawdzaniem narożników
+        return input_vec_rotational.towards_biggest_difference(img, i, self._size)
 
         
 
