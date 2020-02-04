@@ -54,12 +54,12 @@ def segmentImage(folderPath, outputPath,refPath,  imageFile, n_iter, learn_rate,
     start_time = time.time()
     result = my_som.convert_image(img)
     print("Time taken for converting: " + str((time.time() - start_time)/60) + " min")
-    outputFileName = outputPath + "\\" + filename + "\\" + str(time.time()//1) + str(my_som.d_x) + str(my_som.d_y) + str(my_som.d_z) + "_lr" + str(int(1//my_som.lr)) + "_li" + str(my_som._learn_iterations) + "_th" + str(threshold) + "_" + "_s" + str(size) + ".png"
+    outputFileName = outputPath + "\\" + filename + "\\" + str(time.time()//1) + str(my_som._d_x) + str(my_som._d_y) + str(my_som._d_z) + "_lr" + str(int(1//my_som._lr)) + "_li" + str(my_som._learn_iterations) + "_th" + str(threshold) + "_" + "_s" + str(size) + ".png"
     print(outputFileName)
     print(cv2.imwrite(outputFileName,result))
-    my_som.finish()
+    my_som._finish()
     nmi.validateResult(imgPath = outputFileName, referencePath = refPath, img = result)
     if showResult == True:
-        cv2.imshow(str(my_som.d_x) + str(my_som.d_y) + str(my_som.d_z) + "_lr" + str(int(1//my_som.lr)) + "_li" + str(my_som._learn_iterations), result)
+        cv2.imshow(str(my_som._d_x) + str(my_som._d_y) + str(my_som._d_z) + "_lr" + str(int(1//my_som._lr)) + "_li" + str(my_som._learn_iterations), result)
         cv2.waitKey()
 
